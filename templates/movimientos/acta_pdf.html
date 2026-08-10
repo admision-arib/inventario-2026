@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acta de Desplazamiento N° {{ movimiento.id }} - IESTP ARIB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; padding: 0; }
+            .page-a4 { box-shadow: none !important; border: none !important; margin: 0 !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900 p-6 min-h-screen">
+
+    <!-- Botón Flotante para Imprimir (Oculto al Imprimir) -->
+    <div class="max-w-4xl mx-auto mb-4 flex justify-between items-center no-print">
+        <a href="{% url 'movimientos:detalle' movimiento.pk %}" class="text-xs font-semibold text-slate-600 hover:text-slate-900">
+            ← Volver al sistema
+        </a>
+        <button onclick="window.print()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg transition">
+            🖨️ Imprimir / Guardar en PDF
+        </button>
+    </div>
+
+    <!-- Hoja A4 -->
+    <div class="max-w-4xl mx-auto bg-white p-10 rounded-2xl shadow-xl border border-slate-200 page-a4 space-y-6">
+
+        <!-- Encabezado Institucional -->
+        <div class="flex items-center justify-between border-b-2 border-slate-900 pb-4">
+            <div>
+                <h1 class="text-base font-bold text-slate-900 uppercase tracking-tight">IESTP ALIANZA RENOVADA ICHUÑA BÉLGICA</h1>
+                <p class="text-xs font-semibold text-slate-600">Unidad de Control Patrimonial e Inventario</p>
+            </div>
+            <div class="text-right">
+                <span class="inline-block px-3 py-1 bg-slate-900 text-white font-mono text-xs font-bold rounded">
+                    ACTA N° {{ movimiento.id|stringformat:"05d" }}-{% now "Y" %}
+                </span>
+                <p class="text-[10px] text-slate-500 mt-1">Fecha: {{ movimiento.fecha_movimiento|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Título -->
+        <div class="text-center py-2">
+            <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider">PAPELETA / ACTA DE DESPLAZAMIENTO DE BIENES</h2>
+        </div>
+
+        <!-- Texto Introductorio -->
+        <p class="text-xs leading-relaxed text-slate-700 text-justify">
+            Por medio del presente documento, se hace constar el traslado y entrega formal de la custodia y responsabilidad patrimonial del bien institucional que se detalla a continuación, en cumplimiento de las normativas vigentes de gestión de bienes estatales.
+        </p>
+
+        <!-- Detalle del Bien -->
+        <div class="space-y-2">
+            <h3 class="text-xs font-bold text-slate-900 uppercase border-b border-slate-200 pb-1">1. Descripción del Bien Patrimonial</h3>
+            <table class="w-full text-left text-xs border border-slate-300 border-collapse">
+                <tbody class="divide-y divide-slate-300">
+                    <tr>
+                        <th class="p-2 bg-slate-100 font-bold w-1/4">Código Patrimonial</th>
+                        <td class="p-2 font-mono font-bold text-indigo-700">{{ movimiento.bien.codigo_patrimonial }}</td>
+                        <th class="p-2 bg-slate-100 font-bold w-1/4">Doc. Autorización</th>
+                        <td class="p-2 font-mono">{{ movimiento.documento_autorizacion|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="p-2 bg-slate-100 font-bold">Denominación</th>
+                        <td class="p-2 font-medium" colspan="3">{{ movimiento.bien.denominacion }}</td>
+                    </tr>
+                    <tr>
+                        <th class="p-2 bg-slate-100 font-bold">Marca / Modelo</th>
+                        <td class="p-2">{{ movimiento.bien.marca|default:"—" }} / {{ movimiento.bien.modelo|default:"—" }}</td>
+                        <th class="p-2 bg-slate-100 font-bold">Serie</th>
+                        <td class="p-2 font-mono">{{ movimiento.bien.serie|default:"—" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Origen y Destino -->
+        <div class="grid grid-cols-2 gap-4 text-xs">
+            <div class="border border-slate-300 p-3 rounded-lg space-y-1">
+                <h4 class="font-bold text-slate-900 uppercase border-b border-slate-200 pb-1">2. Área / Custodio Saliente (Origen)</h4>
+                <p><strong>Área:</strong> {{ movimiento.area_origen.nombre|default:"—" }}</p>
+                <p><strong>Responsable:</strong>
+                    {% if movimiento.usuario_origen %}
+                        {{ movimiento.usuario_origen.get_full_name|default:movimiento.usuario_origen.username }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </p>
+            </div>
+            <div class="border border-slate-300 p-3 rounded-lg space-y-1">
+                <h4 class="font-bold text-slate-900 uppercase border-b border-slate-200 pb-1">3. Área / Custodio Receptor (Destino)</h4>
+                <p><strong>Área:</strong> {{ movimiento.area_destino.nombre|default:"—" }}</p>
+                <p><strong>Responsable:</strong>
+                    {% if movimiento.usuario_destino %}
+                        {{ movimiento.usuario_destino.get_full_name|default:movimiento.usuario_destino.username }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="space-y-1 text-xs">
+            <h3 class="font-bold text-slate-900 uppercase border-b border-slate-200 pb-1">4. Motivo / Observaciones</h3>
+            <div class="p-2.5 border border-slate-300 rounded-lg bg-slate-50 min-h-[50px]">
+                {{ movimiento.observaciones|default:"Sin observaciones registradas." }}
+            </div>
+        </div>
+
+        <!-- Firma e Impresiones -->
+        <div class="pt-20 grid grid-cols-3 gap-6 text-center text-[11px]">
+            <div class="border-t border-slate-900 pt-2 space-y-0.5">
+                <p class="font-bold text-slate-900 uppercase">
+                    {% if movimiento.usuario_origen %}
+                        {{ movimiento.usuario_origen.get_full_name|default:movimiento.usuario_origen.username }}
+                    {% else %}
+                        ENTREGANTE
+                    {% endif %}
+                </p>
+                <p class="text-slate-500">Entregante / Custodio Anterior</p>
+            </div>
+            <div class="border-t border-slate-900 pt-2 space-y-0.5">
+                <p class="font-bold text-slate-900 uppercase">
+                    {% if movimiento.usuario_destino %}
+                        {{ movimiento.usuario_destino.get_full_name|default:movimiento.usuario_destino.username }}
+                    {% else %}
+                        RECEPTOR
+                    {% endif %}
+                </p>
+                <p class="text-slate-500">Receptor / Nuevo Custodio</p>
+            </div>
+            <div class="border-t border-slate-900 pt-2 space-y-0.5">
+                <p class="font-bold text-slate-900 uppercase">
+                    {% if movimiento.registrado_por %}
+                        {{ movimiento.registrado_por.get_full_name|default:movimiento.registrado_por.username }}
+                    {% else %}
+                        PATRIMONIO
+                    {% endif %}
+                </p>
+                <p class="text-slate-500">Control Patrimonial / Registro</p>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

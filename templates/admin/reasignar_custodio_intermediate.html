@@ -1,0 +1,21 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <h2>Reasignación Masiva de Custodio</h2>
+    <p>Se van a reasignar <strong>{{ bienes.count }}</strong> bienes seleccionados:</p>
+    
+    <div style="background: #222; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+        {{ form.as_p }}
+    </div>
+
+    <input type="hidden" name="action" value="reasignar_custodio_masivo" />
+    {% for bien in bienes %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ bien.pk }}" />
+    {% endfor %}
+
+    <input type="submit" name="apply" value=" Confirmar Reasignación Masiva" class="default" />
+    <a href="#" onclick="window.history.back();" class="button cancel-link">Cancelar</a>
+</form>
+{% endblock %}

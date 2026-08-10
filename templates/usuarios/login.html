@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - IESTP ARIB</title>
+    <!-- Tailwind CSS desde CDN para mantener estilos independientes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full space-y-6">
+
+        <!-- LOGO Y TÍTULO INSTITUCIONAL -->
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 mb-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">IESTP ARIB</h1>
+            <p class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Sistema de Inventario Patrimonial</p>
+        </div>
+
+        <!-- CARD FORMULARIO -->
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200/80 space-y-6">
+
+            <div class="space-y-1">
+                <h2 class="text-lg font-bold text-slate-800">Bienvenido de nuevo</h2>
+                <p class="text-xs text-slate-500">Ingresa tus credenciales para acceder a la plataforma.</p>
+            </div>
+
+            <!-- MENSAJES DE ERROR -->
+            {% if form.errors %}
+                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2">
+                    <svg class="w-4 h-4 text-rose-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Usuario o contraseña incorrectos. Por favor, verifica tus datos.</span>
+                </div>
+            {% endif %}
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                <!-- USUARIO -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-slate-700">Usuario / DNI</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        </div>
+                        <input type="text" name="username" required autofocus
+                               placeholder="Ej: admin o 45892011"
+                               class="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-800 text-xs rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all outline-none">
+                    </div>
+                </div>
+
+                <!-- CONTRASEÑA -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-slate-700">Contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                        <input type="password" name="password" required
+                               placeholder="••••••••"
+                               class="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-800 text-xs rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all outline-none">
+                    </div>
+                </div>
+
+                <!-- BOTÓN SUBMIT -->
+                <button type="submit"
+                        class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs rounded-xl shadow-sm shadow-indigo-200 transition duration-200 mt-2">
+                    Ingresar al Sistema
+                </button>
+            </form>
+        </div>
+
+        <!-- PIE DE PÁGINA -->
+        <p class="text-center text-[11px] text-slate-400">
+            IESTP Alianza Renovada Ichuña Bélgica &copy; 2026. Todos los derechos reservados.
+        </p>
+
+    </div>
+
+</body>
+</html>

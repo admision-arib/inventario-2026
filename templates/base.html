@@ -1,0 +1,206 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Inventario Patrimonial{% endblock %}</title>
+
+    <!-- Tailwind CSS desde CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Alpine.js (Para abrir/cerrar menú en móviles) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        @media print {
+            .no-print, aside, header { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+            body { background-color: #ffffff !important; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full font-sans antialiased text-slate-800" x-data="{ sidebarOpen: false }">
+
+    {% if user.is_authenticated %}
+    <div class="min-h-full flex">
+
+        <!-- ========== OVERLAY PARA MÓVILES ========== -->
+        <div x-show="sidebarOpen"
+             x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="sidebarOpen = false"
+             class="fixed inset-0 z-40 bg-slate-900/80 backdrop-blur-sm lg:hidden no-print"
+             x-cloak></div>
+
+        <!-- ========== ASIDE / BARRA LATERAL ========== -->
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 no-print border-r border-slate-800 shadow-xl lg:shadow-none">
+
+            <!-- Logo & Identidad Institucional -->
+            <div class="h-16 flex items-center justify-between px-6 bg-slate-950/60 border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="p-1.5 bg-indigo-600 rounded-xl text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </div>
+                    <div>
+                        <span class="font-bold text-white tracking-tight text-base block leading-tight">IESTP ARIB</span>
+                        <span class="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider block">Inventario Patrimonial</span>
+                    </div>
+                </div>
+                <button @click="sidebarOpen = false" class="lg:hidden text-slate-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Navegación Principal -->
+            <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+                <div class="px-3 pb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Módulos de Bienes</div>
+
+                <!-- Enlace: Bienes Registrados (Accesible por todos los usuarios) -->
+                <a href="{% url 'bienes:lista' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'bienes' and request.resolver_match.url_name == 'lista' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                    Bienes Registrados
+                </a>
+
+                <!-- Enlace: Registrar Nuevo Bien -->
+                <a href="{% url 'bienes:registro' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'bienes' and request.resolver_match.url_name == 'registro' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Nuevo Bien
+                </a>
+
+                <!-- SOLO SUPERADMINISTRADOR: Importar Excel -->
+                {% if user.is_superuser %}
+                <a href="{% url 'bienes:importar' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'bienes' and request.resolver_match.url_name == 'importar' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Importar Excel
+                </a>
+                {% endif %}
+
+                <!-- ========== SECCIÓN: MOVIMIENTOS Y TRASLADOS ========== -->
+                <div class="pt-6 px-3 pb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Movimientos</div>
+
+                <!-- Enlace: Historial de Movimientos -->
+                <a href="{% url 'movimientos:historial' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'movimientos' and request.resolver_match.url_name == 'historial' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    Historial de Traslados
+                </a>
+
+                <!-- Enlace: Nueva Transferencia -->
+                <a href="{% url 'movimientos:registrar_transferencia' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'movimientos' and request.resolver_match.url_name == 'registrar_transferencia' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17l4 4 4-4m-4-5v9M8 7l4-4 4 4m-4-3v9"/></svg>
+                    Registrar Transferencia
+                </a>
+
+                <!-- SOLO SUPERADMINISTRADOR: Administración de Usuarios -->
+                {% if user.is_superuser %}
+                <div class="pt-6 px-3 pb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Administración</div>
+                <a href="{% url 'usuarios:lista' %}"
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition duration-200 {% if request.resolver_match.namespace == 'usuarios' %}bg-indigo-600 text-white shadow-lg shadow-indigo-600/30{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-slate-200{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Usuarios y Roles
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Sección Usuario Sidebar -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+                <div class="flex items-center justify-between">
+                    <div class="min-w-0 pr-2">
+                        <span class="text-xs text-slate-500 font-semibold block uppercase">
+                            {% if user.is_superuser %}Administrador{% else %}Usuario{% endif %}
+                        </span>
+                        <span class="text-sm font-semibold text-slate-200 block truncate" title="{{ user.get_full_name|default:user.username }}">
+                            {{ user.get_full_name|default:user.username }}
+                        </span>
+                    </div>
+                    <form method="post" action="{% url 'usuarios:logout' %}" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit"
+                                title="Cerrar sesión"
+                                class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition cursor-pointer flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ========== ÁREA DE CONTENIDO Y TOPBAR ========== -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <!-- Topbar Header Superior -->
+            <header class="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between no-print z-10">
+                <div class="flex items-center gap-3">
+                    <button @click="sidebarOpen = true" class="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
+                        IESTP Alianza Renovada Ichuña Bélgica
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-semibold text-slate-700 block truncate" title="{{ user.get_full_name|default:user.username }}">
+                        {{ user.get_full_name|default:user.username }}
+                    </span>
+                    <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg">
+                        Sesión Activa
+                    </span>
+                    <form method="post" action="{% url 'usuarios:logout' %}" class="m-0 inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-rose-600 transition cursor-pointer">
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <!-- Mensajes Django -->
+            {% if messages %}
+            <div class="px-6 pt-4 space-y-2 no-print">
+                {% for message in messages %}
+                    <div class="p-4 rounded-xl border text-sm font-medium flex items-center justify-between shadow-sm
+                        {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200
+                        {% elif message.tags == 'error' %}bg-rose-50 text-rose-800 border-rose-200
+                        {% else %}bg-sky-50 text-sky-800 border-sky-200{% endif %}">
+                        <span>{{ message }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-xs opacity-60 hover:opacity-100">✕</button>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Contenido Dinámico -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Footer -->
+            <footer class="bg-white border-t border-slate-200/80 text-slate-400 text-xs py-4 px-6 text-center no-print">
+                © {% now "Y" %} IESTP Alianza Renovada Ichuña Bélgica — Sistema de Inventario Patrimonial
+            </footer>
+        </div>
+
+    </div>
+
+    {% else %}
+    <!-- Layout para Pantalla de Unauthenticated / Login -->
+    <main class="min-h-screen flex items-center justify-center p-4">
+        {% block content_login %}{% block content_unauth %}{% endblock %}{% endblock %}
+    </main>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

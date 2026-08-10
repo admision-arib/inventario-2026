@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registrar Transferencia - IESTP ARIB{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-5 pb-12">
+
+    <!-- Header Principal -->
+    <div class="flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-slate-900 tracking-tight">Registrar Transferencia de Bien</h1>
+                <p class="text-xs text-slate-500">Asigna una nueva área y usuario custodio responsable a un activo institucional.</p>
+            </div>
+        </div>
+        <a href="{% url 'movimientos:historial' %}"
+           class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-xs rounded-xl transition">
+            ← Volver
+        </a>
+    </div>
+
+    {% if bien_inicial %}
+    <!-- Banner Informativo del Bien Preseleccionado -->
+    <div class="p-4 bg-indigo-50/80 border border-indigo-100 rounded-2xl space-y-2">
+        <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-100/60 px-2.5 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span> Bien Preseleccionado
+        </span>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+            <div>
+                <p class="text-sm font-bold text-slate-900">{{ bien_inicial.denominacion }}</p>
+                <p class="text-xs font-mono font-bold text-indigo-600">{{ bien_inicial.codigo_patrimonial }}</p>
+            </div>
+            <div class="text-left sm:text-right text-xs text-slate-600 bg-white/70 p-2.5 rounded-xl border border-indigo-100/80">
+                <span class="text-slate-400 font-medium block text-[10px] uppercase">Ubicación Actual</span>
+                <span class="font-semibold text-slate-800">{{ bien_inicial.area.nombre }}</span>
+                <span class="text-slate-400">|</span>
+                <span class="text-slate-600">{{ bien_inicial.usuario_responsable.get_full_name|default:"Sin asignación" }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulario Principal -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium space-y-1">
+                    {% for error in form.non_field_errors %}
+                        <p>❌ {{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Seleccionar Bien -->
+            <div class="space-y-1.5">
+                <label for="{{ form.bien.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Bien Patrimonial <span class="text-rose-500">*</span>
+                </label>
+                {{ form.bien }}
+                {% if form.bien.errors %}
+                    <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.bien.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Área y Usuario Destino -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label for="{{ form.area_destino.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Área Destino <span class="text-rose-500">*</span>
+                    </label>
+                    {{ form.area_destino }}
+                    {% if form.area_destino.errors %}
+                        <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.area_destino.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="{{ form.usuario_destino.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Nuevo Usuario Custodio <span class="text-rose-500">*</span>
+                    </label>
+                    {{ form.usuario_destino }}
+                    {% if form.usuario_destino.errors %}
+                        <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.usuario_destino.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documento de Autorización -->
+            <div class="space-y-1.5">
+                <label for="{{ form.documento_autorizacion.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Documento de Autorización / Memorando
+                </label>
+                {{ form.documento_autorizacion }}
+                {% if form.documento_autorizacion.errors %}
+                    <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.documento_autorizacion.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Observaciones -->
+            <div class="space-y-1.5">
+                <label for="{{ form.observaciones.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Motivo / Observaciones
+                </label>
+                {{ form.observaciones }}
+                {% if form.observaciones.errors %}
+                    <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.observaciones.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Botones -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <a href="{% url 'movimientos:historial' %}"
+                   class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition duration-200">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs rounded-xl shadow-sm shadow-indigo-200 transition duration-200">
+                    Procesar Transferencia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

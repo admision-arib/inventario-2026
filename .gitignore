@@ -1,0 +1,60 @@
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entorno virtual
+ve_Dev/
+venv/
+env/
+
+# =========================
+# Django
+# =========================
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Migraciones (opcional: si trabajas en equipo se pueden subir)
+**/migrations/*
+!**/migrations/__init__.py
+
+# =========================
+# Variables de entorno
+# =========================
+.env
+
+# =========================
+# IDEs
+# =========================
+.idea/
+.vscode/
+
+# =========================
+# Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Archivos temporales
+# =========================
+*.swp
+*.tmp
+
+# =========================
+# Archivos sensibles
+# =========================
+*.env
+*.key
+*.pem
+
+# =========================
+# Otros
+# =========================
+coverage/
+htmlcov/

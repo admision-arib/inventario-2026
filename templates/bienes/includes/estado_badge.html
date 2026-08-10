@@ -1,0 +1,17 @@
+{% if bien.estado_conservacion == 'B' or bien.estado_conservacion == 'N' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        {{ bien.get_estado_conservacion_display }}
+    </span>
+{% elif bien.estado_conservacion == 'R' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+        {{ bien.get_estado_conservacion_display }}
+    </span>
+{% elif bien.estado_conservacion == 'M' or bien.estado_conservacion == 'I' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+        {{ bien.get_estado_conservacion_display }}
+    </span>
+{% else %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+        {{ bien.get_estado_conservacion_display|default:"Sin Estado" }}
+    </span>
+{% endif %}

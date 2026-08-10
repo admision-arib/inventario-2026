@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bienes Registrados - IESTP ARIB{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-4 pb-12">
+
+    <!-- ========== ENCABEZADO Y ACCIONES ========== -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">
+                    {% if es_admin %}Bienes Registrados{% else %}Mi Custodia de Bienes{% endif %}
+                </h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5 pl-4.5">
+                {% if es_admin %}
+                    Inventario patrimonial e histórico de activos institucionales.
+                {% else %}
+                    Relación de activos y bienes patrimoniales asignados bajo tu responsabilidad.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN (INSPECCIÓN QR Y ADMINISTRACIÓN) -->
+        <div class="flex flex-wrap items-center gap-2.5">
+
+            {% if es_admin %}
+                <!-- 📱 BOTÓN DE VERIFICACIÓN FÍSICA MÓVIL (Admin e Inventariador/Verificador) -->
+                <a href="{% url 'reportes:iniciar_inventario' %}?area={{ request.GET.area|default:'' }}"
+                   class="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-xl border border-indigo-200/80 shadow-sm transition duration-200">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm0 10h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12-10h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                    </svg>
+                    <span>Verificar Bienes (QR)</span>
+                </a>
+            {% endif %}
+
+            <!-- 🟢 IMPORTAR EXCEL: EXCLUSIVO ÚNICAMENTE PARA SUPERADMINISTRADOR -->
+            {% if user.is_superuser %}
+                <a href="{% url 'bienes:importar' %}"
+                   class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-semibold text-xs rounded-xl transition duration-200">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Importar Excel
+                </a>
+            {% endif %}
+
+            {% if es_admin %}
+                <!-- NUEVO BIEN (Admin e Inventariador/Verificador) -->
+                <a href="{% url 'bienes:registro' %}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs rounded-xl shadow-sm shadow-indigo-200 transition duration-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Nuevo Bien
+                </a>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- ========== BARRA DE BÚSQUEDA GENERAL ========== -->
+    <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200/80">
+        <form method="get" action="{% url 'bienes:lista' %}" class="flex flex-col sm:flex-row gap-2.5">
+            {% if request.GET.area %}
+                <input type="hidden" name="area" value="{{ request.GET.area }}">
+            {% endif %}
+
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <input type="text" name="q"
+                       placeholder="Buscar por código patrimonial, denominación, marca, serie..."
+                       class="w-full pl-10 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-800 text-xs rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all outline-none"
+                       value="{{ request.GET.q|default:'' }}">
+            </div>
+
+            <button type="submit"
+                    class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl transition duration-200">
+                Buscar
+            </button>
+            {% if request.GET.q or request.GET.area %}
+                <a href="{% url 'bienes:lista' %}" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-xl text-center transition">
+                    Limpiar Filtros
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- ========== LAYOUT PRINCIPAL: PANEL IZQUIERDO + TABLA ========== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        <!-- 1. PANEL LATERAL (TREEVIEW ADMIN O RESUMEN MI CUSTODIA) -->
+        <div class="lg:col-span-3 space-y-3">
+
+            {% if es_admin %}
+                <!-- TARJETA MÉTRICA: TOTAL GENERAL DE BIENES (SOLO ADMIN / VERIFICADOR) -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                                Control Global
+                            </span>
+                            <p class="text-xs font-semibold text-slate-600 mt-0.5">Total Bienes Registrados</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">
+                                {{ total_bienes_sistema|default:0 }}
+                            </p>
+                        </div>
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- CONTENEDOR ÁRBOLES Y NAVEGACIÓN -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        {% if es_admin %}Estructura / Áreas{% else %}Mi Custodia{% endif %}
+                    </h2>
+                    {% if request.GET.area %}
+                        <a href="{% url 'bienes:lista' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}"
+                           class="text-[10px] text-indigo-600 font-semibold hover:underline">
+                            Todas
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="text-xs text-slate-700">
+                    {% if es_admin %}
+                        <!-- VISTA COMPLETA DE SEDES Y ÁREAS (ADMIN / VERIFICADOR) -->
+                        <ul class="space-y-1.5">
+                            {% for sede in sedes %}
+                            <li x-data="{ open: true }">
+                                <button @click="open = !open"
+                                        class="w-full flex items-center justify-between py-1.5 px-2 hover:bg-slate-50 rounded-lg text-left font-semibold text-slate-800 transition">
+                                    <span class="flex items-center gap-1.5 truncate">
+                                        <svg class="w-3.5 h-3.5 text-indigo-600 transition-transform" :class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                        🏢 {{ sede.nombre }}
+                                    </span>
+                                </button>
+
+                                <ul x-show="open" class="pl-3.5 pt-1 space-y-0.5 border-l border-slate-200 ml-2.5">
+                                    {% for area in sede.areas.all %}
+                                    <li class="flex items-center justify-between group rounded-lg hover:bg-slate-50 transition">
+                                        <!-- Enlace del Área + Contador -->
+                                        <a href="?area={{ area.id }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                                           class="flex-1 flex items-center justify-between py-1 px-2 text-[11px] rounded-lg transition {% if request.GET.area == area.id|stringformat:'i' %}bg-indigo-50 font-bold text-indigo-700{% else %}text-slate-600 hover:text-indigo-600{% endif %}">
+                                            <span class="truncate">📁 {{ area.nombre }}</span>
+                                            <span class="text-[10px] text-slate-400 font-semibold ml-1">({{ area.total_bienes_area|default:0 }})</span>
+                                        </a>
+
+                                        <!-- Botón rápida impresión masiva de QR -->
+                                        {% if area.total_bienes_area > 0 %}
+                                            <a href="{% url 'bienes:imprimir_qrs_area' area.id %}" target="_blank"
+                                               title="Imprimir todos los QR de {{ area.nombre }} en A4"
+                                               class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md opacity-0 group-hover:opacity-100 transition mr-1">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                                </svg>
+                                            </a>
+                                        {% endif %}
+                                    </li>
+                                    {% empty %}
+                                    <li class="text-[10px] text-slate-400 pl-2">Sin áreas asignadas</li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <!-- RESUMEN Y FILTROS DE CUSTODIA (CUSTODIO / DOCENTE) -->
+                        <div class="space-y-3">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                                <span class="text-[10px] font-semibold uppercase text-slate-400 block">Usuario Custodio</span>
+                                <p class="font-bold text-slate-800 text-xs uppercase">{{ user.get_full_name|default:user.username }}</p>
+                                <div class="pt-2 border-t border-slate-200/60 flex justify-between items-center text-[11px]">
+                                    <span class="text-slate-500">Bienes a cargo:</span>
+                                    <span class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                        {{ page_obj.paginator.count }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {% if areas_usuario %}
+                            <div class="pt-2 space-y-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">Filtro por Oficina/Área</span>
+                                <div class="space-y-0.5">
+                                    <a href="{% url 'bienes:lista' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}"
+                                       class="flex items-center justify-between py-1.5 px-2 rounded-lg text-[11px] transition {% if not request.GET.area %}bg-indigo-50 font-bold text-indigo-700{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                                        <span>📦 Ver Todos</span>
+                                        <span class="text-[10px] text-indigo-500 font-semibold">{{ total_bienes_custodia }}</span>
+                                    </a>
+                                    {% for area in areas_usuario %}
+                                    <a href="?area={{ area.id }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                                       class="flex items-center justify-between py-1.5 px-2 rounded-lg text-[11px] transition {% if request.GET.area == area.id|stringformat:'i' %}bg-indigo-50 font-bold text-indigo-700{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                                        <span class="truncate">📁 {{ area.nombre }}</span>
+                                        <span class="text-[10px] text-slate-400 font-semibold">({{ area.total_bienes_area|default:0 }})</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2. TABLA DE DATOS -->
+        <div class="lg:col-span-9 bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-4">Código Patrimonial</th>
+                            <th class="py-3.5 px-4">Denominación</th>
+                            <th class="py-3.5 px-4">Doc. Ref.</th>
+                            <th class="py-3.5 px-4">Sede / Área</th>
+                            <th class="py-3.5 px-4 text-center">Estado</th>
+                            <th class="py-3.5 px-4">Registro</th>
+                            <th class="py-3.5 px-4 text-center">Código QR</th>
+                            <th class="py-3.5 px-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
+                        {% for bien in page_obj %}
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <!-- Código -->
+                            <td class="py-3.5 px-4 font-mono font-semibold text-indigo-600 whitespace-nowrap">
+                                {{ bien.codigo_patrimonial }}
+                            </td>
+
+                            <!-- Denominación -->
+                            <td class="py-3.5 px-4 font-medium text-slate-900">
+                                {{ bien.denominacion }}
+                                {% if bien.marca or bien.modelo %}
+                                    <span class="block text-[11px] font-normal text-slate-400">
+                                        {{ bien.marca|default:"" }} {{ bien.modelo|default:"" }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- N° Documento -->
+                            <td class="py-3.5 px-4 whitespace-nowrap text-slate-500">
+                                {{ bien.numero_documento|default:"—" }}
+                            </td>
+
+                            <!-- Sede / Área -->
+                            <td class="py-3.5 px-4">
+                                <span class="font-medium text-slate-800">{{ bien.sede.nombre }}</span>
+                                <span class="block text-[11px] text-slate-400">{{ bien.area.nombre }}</span>
+                            </td>
+
+                            <!-- Estado Conservación -->
+                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                {% include "bienes/includes/estado_badge.html" with bien=bien %}
+                            </td>
+
+                            <!-- Fecha de Creación -->
+                            <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                                {{ bien.creado_en|date:"d/m/Y" }}
+                            </td>
+
+                            <!-- QR con Previsualización al Hover -->
+                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                {% if bien.qr_code %}
+                                    <div class="relative group inline-block">
+                                        <a href="{{ bien.qr_code.url }}" target="_blank"
+                                           class="p-1.5 inline-flex items-center justify-center bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                                        </a>
+                                        <!-- Tooltip flotante previsualizador -->
+                                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 p-2 bg-white rounded-xl shadow-xl border border-slate-200">
+                                            <img src="{{ bien.qr_code.url }}" alt="QR" class="w-24 h-24 object-contain">
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-slate-300">—</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Botones de Acción -->
+                            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-1">
+                                    <a href="{% url 'bienes:detalle' bien.codigo_patrimonial %}"
+                                       title="Ver Ficha"
+                                       class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </a>
+                                    {% if es_admin %}
+                                    <a href="{% url 'bienes:editar' bien.codigo_patrimonial %}"
+                                       title="Editar"
+                                       class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="py-12 text-center text-slate-400">
+                                <svg class="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                                {% if request.GET.q or request.GET.area %}
+                                    No se encontraron bienes con los filtros seleccionados.
+                                {% else %}
+                                    No se encontraron bienes registrados en esta vista.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINACIÓN MANTENIENDO TODOS LOS FILTROS DE URL -->
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
+                <span class="text-xs text-slate-500">
+                    Página <strong class="text-slate-800">{{ page_obj.number }}</strong> de <strong class="text-slate-800">{{ page_obj.paginator.num_pages }}</strong>
+                </span>
+
+                <div class="inline-flex gap-1">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.area %}&area={{ request.GET.area }}{% endif %}"
+                           class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition">
+                            Anterior
+                        </a>
+                    {% endif %}
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.area %}&area={{ request.GET.area }}{% endif %}"
+                           class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg transition">
+                            Siguiente
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

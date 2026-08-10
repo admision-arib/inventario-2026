@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Importar desde Excel{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow">
+    <h1 class="text-2xl font-bold text-blue-800 mb-6">📤 Importar desde Excel</h1>
+    <p class="text-gray-600 mb-4">
+        Sube un archivo Excel con múltiples hojas. Selecciona las hojas que deseas importar.
+    </p>
+
+    <form method="post" enctype="multipart/form-data" id="import-form">
+        {% csrf_token %}
+
+        <!-- Archivo -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700">Archivo Excel (.xlsx)</label>
+            <input type="file" name="archivo_excel" accept=".xlsx,.xls" required
+                   class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                   id="file-input">
+        </div>
+
+        <!-- Selector de hojas (se muestra después de subir el archivo) -->
+        <div id="hojas-container" class="hidden mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3">📋 Selecciona las hojas a importar</h2>
+            <div id="hojas-lista" class="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <!-- Las hojas se cargarán dinámicamente con JavaScript -->
+            </div>
+            <div class="mt-3 flex gap-4">
+                <button type="button" onclick="seleccionarTodas(true)" class="text-sm text-blue-600 hover:underline">Seleccionar todas</button>
+                <button type="button" onclick="seleccionarTodas(false)" class="text-sm text-blue-600 hover:underline">Deseleccionar todas</button>
+                <span class="text-sm text-gray-500" id="contador-seleccionadas">0 seleccionadas</span>
+            </div>
+        </div>
+
+        <!-- Botón importar -->
+        <div class="flex justify-end">
+            <button type="submit" id="btn-importar" disabled
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow disabled:opacity-50 disabled:cursor-not-allowed">
+                Importar
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Leer el archivo para obtener los nombres de las hojas
+        const formData = new FormData();
+        formData.append('archivo_excel', file);
+        formData.append('accion', 'listar_hojas');
+
+        fetch('{% url "bienes:listar_hojas" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('hojas-container');
+            const lista = document.getElementById('hojas-lista');
+            const btnImportar = document.getElementById('btn-importar');
+
+            lista.innerHTML = '';
+            data.hojas.forEach(hoja => {
+                // Verificar si la hoja ya fue importada (puedes enviar un flag desde el backend)
+                const yaImportada = data.importadas && data.importadas.includes(hoja);
+                const checked = !yaImportada; // Por defecto, no seleccionar las ya importadas
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <input type="checkbox" name="hojas" value="${hoja}" id="hoja-${hoja}" ${checked ? 'checked' : ''} ${yaImportada ? 'disabled' : ''}>
+                    <label for="hoja-${hoja}" class="text-sm ${yaImportada ? 'text-gray-400 line-through' : 'text-gray-700'}">
+                        ${hoja} ${yaImportada ? ' (ya importada)' : ''}
+                    </label>
+                `;
+                lista.appendChild(div);
+            });
+
+            container.classList.remove('hidden');
+            btnImportar.disabled = false;
+            actualizarContador();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al leer el archivo. Verifica que sea un Excel válido.');
+        });
+    });
+
+    function actualizarContador() {
+        const checkboxes = document.querySelectorAll('input[name="hojas"]:checked');
+        document.getElementById('contador-seleccionadas').textContent = checkboxes.length + ' seleccionadas';
+    }
+
+    function seleccionarTodas(seleccionar) {
+        document.querySelectorAll('input[name="hojas"]:not([disabled])').forEach(cb => {
+            cb.checked = seleccionar;
+        });
+        actualizarContador();
+    }
+
+    // Actualizar contador al cambiar checkboxes
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'hojas') {
+            actualizarContador();
+        }
+    });
+</script>
+{% endblock %}

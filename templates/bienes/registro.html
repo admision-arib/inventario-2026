@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo|default:"Registro de Bien Patrimonial" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-3">
+
+    <!-- Encabezado Compacto -->
+    <div class="flex items-center justify-between bg-white px-5 py-3 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
+            <div>
+                <h1 class="text-lg font-bold text-slate-900 leading-tight">{{ titulo|default:"Registro de Bien Patrimonial" }}</h1>
+                <p class="text-xs text-slate-500">Formulario técnico de alta y asignación de activos institucionales. |
+                    <b> <a href="https://catalogo.herramientasdeconsulta.com/" target="_blank">click Buscar en catalogo</a></b></p>
+
+            </div>
+        </div>
+        <a href="{% url 'bienes:lista' %}" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition">
+            ← Volver al listado
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-3">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
+            <strong>Por favor corrijas los errores en el formulario antes de guardar.</strong>
+        </div>
+        {% endif %}
+
+        <!-- SECCIÓN 1: IDENTIFICACIÓN PATRIMONIAL Y CATÁLOGO -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M19 7h.01M19 11h.01M19 15h.01M4 3h16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg>
+                    1. Identificación y Catálogo
+                </h2>
+                <span class="text-[10px] text-slate-400 font-medium">* Campos obligatorios</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3">
+
+                <!-- Código Catálogo SIGA -->
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Cód. Catálogo SIGA</label>
+                    {{ form.catalogo_siga }}
+                    {% if form.catalogo_siga.errors %}<p class="text-rose-600 text-[10px] mt-0.5 font-medium">{{ form.catalogo_siga.errors.0 }}</p>{% endif %}
+                </div>
+
+                <!-- Denominación -->
+                <div class="md:col-span-6">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Denominación del Bien *</label>
+                    {{ form.denominacion }}
+                    {% if form.denominacion.errors %}<p class="text-rose-600 text-[10px] mt-0.5 font-medium">{{ form.denominacion.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: CARACTERÍSTICAS TÉCNICAS -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                2. Especificaciones Técnicas y Estado
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Marca</label>
+                    {{ form.marca }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Modelo</label>
+                    {{ form.modelo }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Número de Serie</label>
+                    {{ form.serie }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Estado Conservación *</label>
+                    {{ form.estado_conservacion }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color</label>
+                    {{ form.color }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Dimensiones</label>
+                    {{ form.dimensiones }}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Observaciones / Detalles</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: DATOS CONTABLES Y ADQUISICIÓN -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                3. Adquisición y Datos Contables
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-center">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo de Adquisición</label>
+                    {{ form.tipo_adquisicion }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">N° Documento</label>
+                    {{ form.numero_documento }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha de Adquisición</label>
+                    {{ form.fecha_adquisicion }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Valor Inicial (S/.)</label>
+                    {{ form.valor_inicial }}
+                </div>
+                <div class="flex items-center gap-2 pt-1 md:col-span-4">
+                    {{ form.depreciable }}
+                    <label class="text-xs font-semibold text-slate-700 select-none cursor-pointer">¿Es depreciable?</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: UBICACIÓN Y RESPONSABLE -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                4. Ubicación y Responsable
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sede *</label>
+                    {{ form.sede }}
+                    {% if form.sede.errors %}<p class="text-rose-600 text-[10px] mt-0.5">{{ form.sede.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Área *</label>
+                    {{ form.area }}
+                    {% if form.area.errors %}<p class="text-rose-600 text-[10px] mt-0.5">{{ form.area.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Usuario Responsable *</label>
+                    {{ form.usuario_responsable }}
+                    {% if form.usuario_responsable.errors %}<p class="text-rose-600 text-[10px] mt-0.5">{{ form.usuario_responsable.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ubicación Física</label>
+                    {{ form.ubicacion_fisica }}
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+            <a href="{% url 'bienes:lista' %}"
+               class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-200 transition">
+                Guardar Activo Patrimonial
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

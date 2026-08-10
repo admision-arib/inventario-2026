@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ficha Técnica Pública - {{ bien.codigo_patrimonial }}{% endblock %}
+
+{% block content_unauth %}
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200/80">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{% url 'bienes:lista' %}" class="text-indigo-600 hover:text-indigo-700 text-sm font-medium">← Volver al listado</a>
+        <span class="text-slate-300">|</span>
+        <span class="text-sm text-slate-500">Ficha de Activo Patrimonial</span>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-slate-900">{{ bien.denominacion }}</h1>
+        <p class="text-sm text-slate-500 mt-1">Código Patrimonial: <span class="font-mono font-bold text-indigo-600">{{ bien.codigo_patrimonial }}</span></p>
+        <div class="mt-2">
+            {% include "bienes/includes/estado_badge.html" with bien=bien %}
+        </div>
+    </div>
+
+    <!-- Replicamos las secciones de detalle.html pero sin botones de edición -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div class="md:col-span-4 space-y-6">
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Código QR</h3>
+                {% if bien.qr_code %}
+                    <img src="{{ bien.qr_code.url }}" alt="QR" class="w-32 h-32 mx-auto object-contain">
+                {% else %}
+                    <p class="text-slate-400 text-sm">Sin QR generado</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="md:col-span-8 space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><span class="text-xs font-bold text-slate-400 block">Sede</span><span class="text-sm font-semibold">{{ bien.sede.nombre }}</span></div>
+                <div><span class="text-xs font-bold text-slate-400 block">Área</span><span class="text-sm font-semibold">{{ bien.area.nombre }}</span></div>
+                <div><span class="text-xs font-bold text-slate-400 block">Responsable</span><span class="text-sm font-semibold">{{ bien.usuario_responsable.get_full_name|default:"Sin asignar" }}</span></div>
+                <div><span class="text-xs font-bold text-slate-400 block">Marca / Modelo</span><span class="text-sm font-semibold">{{ bien.marca|default:"—" }} {{ bien.modelo|default:"" }}</span></div>
+            </div>
+            <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold text-slate-400 block">Observaciones</span>
+                <p class="text-sm text-slate-700 mt-1">{{ bien.observaciones|default:"Sin observaciones."|linebreaks }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
