@@ -19,6 +19,12 @@ db.sqlite3
 media/
 staticfiles/
 
+# Carpeta de QR e imágenes generadas
+qr/
+*.png
+*.jpg
+*.jpeg
+
 # Migraciones (opcional: si trabajas en equipo se pueden subir)
 **/migrations/*
 !**/migrations/__init__.py
