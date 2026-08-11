@@ -1,22 +1,24 @@
-from config.settings.base import *
-from decouple import config
+from .base import *
 
 DEBUG = False
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
-# SEGURIDAD HTTP
+# Forzamos ROOT_URLCONF aquí para garantizar que exista
+ROOT_URLCONF = 'config.urls'
+
+# Seguridad HTTP
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# COOKIES Y SSL (PROXY INVERSO)
+# Cookies y SSL (proxy inverso)
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 
-# Indicar a Django que Nginx/Apache en Virtualmin gestiona SSL/HTTPS
+# Proxy SSL header
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# ORÍGENES DE CONFIANZA CSRF
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://inventario.iestparib.edu.pe').split(',')
+# Orígenes confiables
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://inventario.iestparib.edu.pe,http://inventario.iestparib.edu.pe').split(',')
