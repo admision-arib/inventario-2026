@@ -77,6 +77,7 @@ class Bien(ModeloAuditable):
             ('DONACION', 'Donación'),
             ('TRANSFERENCIA', 'Transferencia'),
             ('PRODUCCION', 'Producción Propia'),
+            ('DREMO', 'dremo'),
         ],
         verbose_name="Tipo de Adquisición"
     )
