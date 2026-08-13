@@ -11,6 +11,7 @@ import xlrd
 
 from .models import Bien
 from apps.core.models import Sede, Area
+from apps.usuarios.models import Usuario
 from .forms import BienForm
 from .services.importacion_service import importar_desde_excel, generar_codigo_patrimonial
 from apps.movimientos.models import MovimientoBien
@@ -29,40 +30,40 @@ def lista_bienes(request):
     es_admin = user.es_inventariador_o_admin
 
     if es_admin:
-        # Cargar sedes y pre-contar bienes por cada área
+        # 1. ADMIN: Cargar sedes y pre-contar bienes por área
         areas_prefetch = Area.objects.annotate(
             total_bienes_area=Count('bien', filter=Q(bien__activo=True))
-        )
+        ).select_related('sede')
+
         sedes = Sede.objects.prefetch_related(
             Prefetch('areas', queryset=areas_prefetch)
         ).all()
 
-        bienes_qs = Bien.objects.filter(activo=True)
+        bienes_qs = Bien.objects.filter(activo=True).select_related('area', 'area__sede', 'usuario_responsable')
         total_bienes_sistema = bienes_qs.count()
         areas_usuario = None
     else:
         sedes = None
         total_bienes_sistema = None
 
-        # 1. BIENES DEL USUARIO: Filtrar estrictamente por los bienes asignados al usuario responsable
+        # 1. CUSTODIO: Bienes bajo su responsabilidad
         bienes_qs = Bien.objects.filter(
             usuario_responsable=user,
             activo=True
         ).select_related('area', 'area__sede')
 
-        # 2. ÁREAS DINÁMICAS: Obtener solo las áreas donde ESTE USUARIO tiene bienes
+        # 2. Áreas específicas donde el usuario tiene bienes
         areas_usuario = Area.objects.filter(
             bien__usuario_responsable=user,
             bien__activo=True
         ).annotate(
             total_bienes_area=Count('bien', filter=Q(bien__usuario_responsable=user, bien__activo=True))
-        ).distinct()
+        ).select_related('sede').distinct()
 
-    # Filtro por área seleccionada en la URL
+    # Filtros
     if area_id:
         bienes_qs = bienes_qs.filter(area_id=area_id)
 
-    # Filtro de búsqueda por texto
     if query:
         bienes_qs = bienes_qs.filter(
             Q(codigo_patrimonial__icontains=query) |
@@ -76,6 +77,14 @@ def lista_bienes(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # AQUÍ USAMOS EL RELATED_NAME CORRECTO: 'bienes_actuales'
+    usuarios_activos = Usuario.objects.filter(is_active=True).prefetch_related(
+        Prefetch(
+            'bienes_actuales',
+            queryset=Bien.objects.filter(activo=True).select_related('area', 'area__sede')
+        )
+    ).order_by('last_name')
+
     context = {
         'es_admin': es_admin,
         'page_obj': page_obj,
@@ -85,7 +94,12 @@ def lista_bienes(request):
         'areas_usuario': areas_usuario,
         'query': query,
         'area_seleccionada': area_id,
+        'usuarios_activos': usuarios_activos,
+        'areas': Area.objects.select_related('sede').all().order_by('nombre'),
     }
+
+    return render(request, 'bienes/lista.html', context)
+
     return render(request, 'bienes/lista.html', context)
 
 
@@ -309,3 +323,81 @@ def mis_bienes(request):
         'bienes': bienes,
         'mis_areas': mis_areas
     })
+
+@login_required
+def asignacion_masiva(request):
+    # Verificación de permisos
+    if not getattr(request.user, 'es_inventariador_o_admin', False) and not request.user.is_staff:
+        messages.error(request, " No tiene permisos para realizar asignaciones masivas.")
+        return redirect('bienes:lista')
+
+    if request.method == 'POST':
+        bienes_ids_str = request.POST.get('bienes_ids', '')
+        usuario_destino_id = request.POST.get('usuario_destino')
+        area_destino_id = request.POST.get('area_destino')
+
+        if not bienes_ids_str or not usuario_destino_id or not area_destino_id:
+            messages.error(request, " Debe seleccionar bienes, usuario y área de destino.")
+            return redirect('bienes:lista')
+
+        # Convertir IDs a lista de enteros de forma segura
+        try:
+            bienes_ids = [int(id_str.strip()) for id_str in bienes_ids_str.split(',') if id_str.strip()]
+        except ValueError:
+            messages.error(request, " Formato de identificadores de bienes inválido.")
+            return redirect('bienes:lista')
+
+        # Validar existencia de destino
+        try:
+            usuario = Usuario.objects.get(id=usuario_destino_id)
+            area = Area.objects.get(id=area_destino_id)
+        except (Usuario.DoesNotExist, Area.DoesNotExist):
+            messages.error(request, " El usuario o área seleccionada ya no existe.")
+            return redirect('bienes:lista')
+
+        bienes = Bien.objects.filter(id__in=bienes_ids, activo=True)
+
+        if not bienes.exists():
+            messages.warning(request, " No se encontraron bienes activos para reasignar.")
+            return redirect('bienes:lista')
+
+        try:
+            with transaction.atomic():
+                movimientos = []
+                now = timezone.now()
+
+                for bien in bienes:
+                    # Crear el registro histórico de movimiento
+                    movimientos.append(
+                        MovimientoBien(
+                            bien=bien,
+                            tipo='TRANSFERENCIA',
+                            area_origen=bien.area,
+                            usuario_origen=bien.usuario_responsable,
+                            area_destino=area,
+                            usuario_destino=usuario,
+                            fecha_movimiento=now,
+                            documento_autorizacion='ASIGNACION_MASIVA_WEB',
+                            observaciones=f"Asignación masiva realizada por {request.user.get_full_name() or request.user.username}.",
+                            registrado_por=request.user
+                        )
+                    )
+                    # Actualizar las propiedades del bien
+                    bien.usuario_responsable = usuario
+                    bien.area = area
+                    bien.sede = area.sede
+
+                # Guardar movimientos en bloque
+                MovimientoBien.objects.bulk_create(movimientos)
+
+                # Actualizar bienes en bloque
+                Bien.objects.bulk_update(bienes, fields=['usuario_responsable', 'area', 'sede'])
+
+            messages.success(
+                request,
+                f" Se reasignaron con éxito {len(bienes)} bienes a {usuario.get_full_name()} en el área {area.nombre}."
+            )
+        except Exception as e:
+            messages.error(request, f" Ocurrió un error al procesar la transacción: {str(e)}")
+
+    return redirect('bienes:lista')

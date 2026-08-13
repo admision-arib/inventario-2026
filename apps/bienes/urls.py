@@ -20,6 +20,6 @@ urlpatterns = [
     path('importar/', views.importar_bienes, name='importar'),
     path('listar-hojas/', views.listar_hojas, name='listar_hojas'),
     path('area/<int:area_id>/imprimir-qrs/', views.imprimir_qrs_area, name='imprimir_qrs_area'),
-
+    path('asignar-masivo/', views.asignacion_masiva, name='asignar_masivo'),
 ]
 
