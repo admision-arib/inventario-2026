@@ -401,3 +401,30 @@ def asignacion_masiva(request):
             messages.error(request, f" Ocurrió un error al procesar la transacción: {str(e)}")
 
     return redirect('bienes:lista')
+
+
+@login_required
+def buscar_bienes_ajax(request):
+    """Endpoint ligero para autocompletado de bienes."""
+    query = request.GET.get('q', '').strip()
+
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+
+    bienes = Bien.objects.filter(
+        Q(codigo_patrimonial__icontains=query) |
+        Q(denominacion__icontains=query) |
+        Q(serie__icontains=query),
+        activo=True
+    ).select_related('area', 'sede')[:20]  # Limitamos a los primeros 20 resultados
+
+    results = [
+        {
+            'id': bien.id,
+            'text': f"{bien.codigo_patrimonial} - {bien.denominacion}",
+            'area': f"{bien.sede.nombre} / {bien.area.nombre}"
+        }
+        for bien in bienes
+    ]
+
+    return JsonResponse({'results': results})

@@ -21,5 +21,6 @@ urlpatterns = [
     path('listar-hojas/', views.listar_hojas, name='listar_hojas'),
     path('area/<int:area_id>/imprimir-qrs/', views.imprimir_qrs_area, name='imprimir_qrs_area'),
     path('asignar-masivo/', views.asignacion_masiva, name='asignar_masivo'),
+    path('api/buscar-bienes/', views.buscar_bienes_ajax, name='api_buscar_bienes'),
 ]
 

@@ -3,6 +3,68 @@
 
 {% block title %}Registrar Transferencia - IESTP ARIB{% endblock %}
 
+{% block extra_head %}
+<!-- Tom Select CSS & JS desde cdnjs -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/css/tom-select.complete.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.2.2/js/tom-select.complete.min.js"></script>
+
+<style>
+    /* ⚡ Ocultar SOLO la etiqueta <select> nativa que convierte Tom Select */
+    select#select-bien.tomselected {
+        display: none !important;
+    }
+
+    /* Asegurar que el contenedor de Tom Select SÍ sea visible y editable */
+    .ts-wrapper {
+        width: 100% !important;
+    }
+
+    .ts-wrapper .ts-control {
+        border-radius: 0.75rem !important; /* rounded-xl */
+        padding: 0.625rem 0.875rem !important;
+        border-color: #cbd5e1 !important; /* slate-300 */
+        background-color: #f8fafc !important; /* slate-50 */
+        font-size: 0.75rem !important; /* text-xs */
+        color: #0f172a !important;
+        box-shadow: none !important;
+        transition: all 0.2s ease;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* Input interno de búsqueda dentro de Tom Select */
+    .ts-wrapper .ts-control input {
+        font-size: 0.75rem !important;
+        color: #0f172a !important;
+    }
+
+    .ts-wrapper.focus .ts-control {
+        border-color: #6366f1 !important; /* indigo-500 */
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+    }
+
+    .ts-dropdown {
+        border-radius: 0.875rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 0.375rem !important;
+        margin-top: 6px !important;
+        z-index: 50 !important;
+    }
+
+    .ts-dropdown .option {
+        border-radius: 0.5rem !important;
+        padding: 0.625rem 0.75rem !important;
+    }
+
+    .ts-dropdown .active {
+        background-color: #eef2ff !important; /* indigo-50 */
+        color: #4338ca !important; /* indigo-700 */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-5 pb-12">
 
@@ -25,8 +87,8 @@
         </a>
     </div>
 
+    <!-- Banner si el Bien viene Preseleccionado -->
     {% if bien_inicial %}
-    <!-- Banner Informativo del Bien Preseleccionado -->
     <div class="p-4 bg-indigo-50/80 border border-indigo-100 rounded-2xl space-y-2">
         <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-100/60 px-2.5 py-0.5 rounded-full">
             <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span> Bien Preseleccionado
@@ -46,7 +108,7 @@
     </div>
     {% endif %}
 
-    <!-- Formulario Principal -->
+    <!-- Formulario -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
         <form method="post" class="space-y-5">
             {% csrf_token %}
@@ -59,19 +121,45 @@
                 </div>
             {% endif %}
 
-            <!-- Seleccionar Bien -->
+            <!-- 1. CAMPO BUSCADOR DE BIEN PATRIMONIAL -->
             <div class="space-y-1.5">
                 <label for="{{ form.bien.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Bien Patrimonial <span class="text-rose-500">*</span>
                 </label>
+
                 {{ form.bien }}
+
+                <p class="text-[11px] text-slate-400 mt-1">
+                    💡 Escriba el código patrimonial, denominación o serie para buscar en tiempo real.
+                </p>
+
                 {% if form.bien.errors %}
                     <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.bien.errors.0 }}</p>
                 {% endif %}
             </div>
 
-            <!-- Área y Usuario Destino -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- CARD DINÁMICA: INFORMACIÓN DEL BIEN SELECCIONADO -->
+            <div id="card-bien-info" class="hidden p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl space-y-2 transition-all">
+                <div class="flex items-center justify-between border-b border-indigo-100/80 pb-2">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-full">
+                        📍 Ubicación Actual
+                    </span>
+                    <span id="info-codigo" class="text-xs font-mono font-bold text-indigo-700"></span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+                    <div>
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Denominación</span>
+                        <p id="info-denominacion" class="font-bold text-slate-800"></p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Ubicación / Área</span>
+                        <p id="info-area" class="font-semibold text-slate-700"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. ÁREA Y USUARIO DESTINO -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div class="space-y-1.5">
                     <label for="{{ form.area_destino.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Área Destino <span class="text-rose-500">*</span>
@@ -93,29 +181,30 @@
                 </div>
             </div>
 
-            <!-- Documento de Autorización -->
-            <div class="space-y-1.5">
-                <label for="{{ form.documento_autorizacion.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Documento de Autorización / Memorando
-                </label>
-                {{ form.documento_autorizacion }}
-                {% if form.documento_autorizacion.errors %}
-                    <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.documento_autorizacion.errors.0 }}</p>
-                {% endif %}
+            <!-- 3. DOCUMENTO Y OBSERVACIONES -->
+            <div class="space-y-4 pt-2 border-t border-slate-100">
+                <div class="space-y-1.5">
+                    <label for="{{ form.documento_autorizacion.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Documento de Autorización / Memorando
+                    </label>
+                    {{ form.documento_autorizacion }}
+                    {% if form.documento_autorizacion.errors %}
+                        <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.documento_autorizacion.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="{{ form.observaciones.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Motivo / Observaciones
+                    </label>
+                    {{ form.observaciones }}
+                    {% if form.observaciones.errors %}
+                        <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.observaciones.errors.0 }}</p>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- Observaciones -->
-            <div class="space-y-1.5">
-                <label for="{{ form.observaciones.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Motivo / Observaciones
-                </label>
-                {{ form.observaciones }}
-                {% if form.observaciones.errors %}
-                    <p class="text-[11px] font-semibold text-rose-600 mt-1">{{ form.observaciones.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Botones -->
+            <!-- BOTONES -->
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <a href="{% url 'movimientos:historial' %}"
                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition duration-200">
@@ -129,4 +218,87 @@
         </form>
     </div>
 </div>
+
+<!-- SCRIPT TOM SELECT SIMPLIFICADO -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bienSelect = document.getElementById("select-bien");
+
+    if (bienSelect) {
+        if (bienSelect.tomselect) {
+            bienSelect.tomselect.destroy();
+        }
+
+        const ts = new TomSelect(bienSelect, {
+            valueField: 'id',
+            labelField: 'text',
+            searchField: ['text'],
+            maxItems: 1,
+            placeholder: '🔍 Escriba el código o nombre del bien...',
+            preload: 'focus',
+            openOnFocus: true,
+            load: function(query, callback) {
+                if (!query.length) return callback();
+
+                const url = "{% url 'bienes:api_buscar_bienes' %}?q=" + encodeURIComponent(query);
+
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Error en la API");
+                        return response.json();
+                    })
+                    .then(json => {
+                        callback(json.results || []);
+                    })
+                    .catch(error => {
+                        console.error("Error cargando bienes:", error);
+                        callback();
+                    });
+            },
+            render: {
+                option: function(item, escape) {
+                    return `<div class="py-2 px-3 border-b border-slate-100 last:border-none cursor-pointer">
+                        <div class="font-bold text-slate-800 text-xs">${escape(item.text)}</div>
+                        <div class="text-[10px] text-indigo-600 font-semibold mt-0.5">📍 ${escape(item.area || 'Sin área asignada')}</div>
+                    </div>`;
+                },
+                item: function(item, escape) {
+                    return `<div class="text-xs font-semibold text-slate-800">${escape(item.text)}</div>`;
+                },
+                no_results: function(data, escape) {
+                    return `<div class="p-3 text-xs text-slate-400 text-center">No se encontraron bienes con "${escape(data.input)}"</div>`;
+                },
+                loading: function(data, escape) {
+                    return `<div class="p-3 text-xs text-indigo-500 text-center font-medium">Buscando en inventario...</div>`;
+                }
+            },
+            onChange: function(value) {
+                const card = document.getElementById('card-bien-info');
+                if (!value) {
+                    if (card) card.classList.add('hidden');
+                    return;
+                }
+
+                const itemData = this.options[value];
+                if (itemData && card) {
+                    const partes = itemData.text.split(' - ');
+                    document.getElementById('info-codigo').textContent = partes[0] || '';
+                    document.getElementById('info-denominacion').textContent = partes[1] || itemData.text;
+                    document.getElementById('info-area').textContent = itemData.area || 'Sin ubicación asignada';
+                    card.classList.remove('hidden');
+                }
+            }
+        });
+
+        {% if bien_inicial %}
+            ts.addOption({
+                id: "{{ bien_inicial.id }}",
+                text: "{{ bien_inicial.codigo_patrimonial }} - {{ bien_inicial.denominacion }}",
+                area: "{{ bien_inicial.area.nombre }}"
+            });
+            ts.setValue("{{ bien_inicial.id }}");
+        {% endif %}
+    }
+});
+</script>
 {% endblock %}
