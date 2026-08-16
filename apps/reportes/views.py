@@ -448,13 +448,36 @@ def generar_acta_consolidacion_pdf(request):
   return response
 
 
+import io
 from io import BytesIO
-from reportlab.lib.pagesizes import landscape, letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from django.http import HttpResponse
+from urllib.request import urlopen
+from urllib.error import URLError
 
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.utils import timezone
+from django.db import transaction
+from django.db.models import Q, Count
+
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+
+# Tus modelos y vistas de la app
+from apps.bienes.models import Bien
+from apps.core.models import Area
+from .models import SesionInventario, DetalleInventario
+
+# ... (el resto de tus funciones existentes) ...
+
+
+# ============================
+# FUNCIÓN DEL PDF GENERAL
+# ============================
 @login_required
 def generar_inventario_general_pdf(request):
     if not request.user.es_inventariador_o_admin:
@@ -467,27 +490,69 @@ def generar_inventario_general_pdf(request):
     story = []
     styles = getSampleStyleSheet()
 
-    # Título
-    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=14, alignment=1) # Center
-    story.append(Paragraph("<b>INVENTARIO GENERAL DE BIENES PATRIMONIALES</b>", title_style))
-    story.append(Spacer(1, 10))
+    # ==========================================================
+    # 1. CARGAR EL LOGO INSTITUCIONAL
+    # ==========================================================
+    logo_url = "https://iestparib.edu.pe/monitoreo-servidor/assets/logos/arib.png"
+    logo_img = None
+    try:
+        with urlopen(logo_url, timeout=5) as response:
+            logo_img = Image(BytesIO(response.read()))
+            logo_img.drawHeight = 40
+            logo_img.drawWidth = 40
+    except URLError:
+        logo_img = None
+
+    # ==========================================================
+    # 2. TÍTULO Y ENCABEZADO
+    # ==========================================================
+    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=14, alignment=TA_CENTER)
+
+    header_data = [
+        [logo_img if logo_img else '', Paragraph("<b>INVENTARIO GENERAL DE BIENES PATRIMONIALES</b>", title_style)]
+    ]
+    header_table = Table(header_data, colWidths=[60, 500])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 20))
+
+    # ==========================================================
+    # 3. ESTILO DE CELDAS
+    # ==========================================================
+    cell_style = ParagraphStyle(
+        name='CellStyle',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9,
+        alignment=0
+    )
 
     # Encabezados de tabla
     table_data = [['N°', 'Cód. Patrimonial', 'Denominación', 'Marca/Serie', 'Sede / Área', 'Responsable', 'Estado']]
 
+    # ==========================================================
+    # 4. GENERAR FILAS
+    # ==========================================================
     for idx, bien in enumerate(bienes, 1):
+        texto_sede_area = f"{bien.sede.nombre or ''}\n{bien.area.nombre or ''}"
         table_data.append([
             str(idx),
             bien.codigo_patrimonial,
             bien.denominacion,
             f"{bien.marca or ''} / {bien.serie or ''}",
-            f"{bien.sede.nombre or ''} / {bien.area.nombre or ''}",
+            Paragraph(texto_sede_area, cell_style),
             bien.usuario_responsable.get_full_name() or '',
             bien.get_estado_conservacion_display()
         ])
 
-    # Ajusta los anchos de columna según tu pantalla (el papel mide 842pts aprox)
-    t = Table(table_data, colWidths=[25, 80, 160, 90, 90, 90, 70], repeatRows=1)
+    # ==========================================================
+    # 5. CONFIGURAR LA TABLA
+    # ==========================================================
+    t = Table(table_data, colWidths=[25, 80, 160, 90, 130, 100, 70], repeatRows=1)
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
