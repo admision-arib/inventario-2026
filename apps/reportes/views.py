@@ -446,3 +446,65 @@ def generar_acta_consolidacion_pdf(request):
   response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
   response['Content-Disposition'] = f'inline; filename="{filename}"'
   return response
+
+
+from io import BytesIO
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from django.http import HttpResponse
+
+@login_required
+def generar_inventario_general_pdf(request):
+    if not request.user.es_inventariador_o_admin:
+        return HttpResponse("No tiene permisos para generar este reporte.", status=403)
+
+    bienes = Bien.objects.filter(activo=True).select_related('sede', 'area', 'usuario_responsable').order_by('codigo_patrimonial')
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=30, bottomMargin=30, leftMargin=30, rightMargin=30)
+    story = []
+    styles = getSampleStyleSheet()
+
+    # Título
+    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=14, alignment=1) # Center
+    story.append(Paragraph("<b>INVENTARIO GENERAL DE BIENES PATRIMONIALES</b>", title_style))
+    story.append(Spacer(1, 10))
+
+    # Encabezados de tabla
+    table_data = [['N°', 'Cód. Patrimonial', 'Denominación', 'Marca/Serie', 'Sede / Área', 'Responsable', 'Estado']]
+
+    for idx, bien in enumerate(bienes, 1):
+        table_data.append([
+            str(idx),
+            bien.codigo_patrimonial,
+            bien.denominacion,
+            f"{bien.marca or ''} / {bien.serie or ''}",
+            f"{bien.sede.nombre or ''} / {bien.area.nombre or ''}",
+            bien.usuario_responsable.get_full_name() or '',
+            bien.get_estado_conservacion_display()
+        ])
+
+    # Ajusta los anchos de columna según tu pantalla (el papel mide 842pts aprox)
+    t = Table(table_data, colWidths=[25, 80, 160, 90, 90, 90, 70], repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.whitesmoke])
+    ]))
+
+    story.append(t)
+    doc.build(story)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="inventario_general.pdf"'
+    return response
