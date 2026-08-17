@@ -491,7 +491,7 @@ def generar_inventario_general_pdf(request):
     styles = getSampleStyleSheet()
 
     # ==========================================================
-    # 1. CARGAR EL LOGO INSTITUCIONAL
+    # 1. LOGO
     # ==========================================================
     logo_url = "https://iestparib.edu.pe/monitoreo-servidor/assets/logos/arib.png"
     logo_img = None
@@ -535,17 +535,22 @@ def generar_inventario_general_pdf(request):
     table_data = [['N°', 'Cód. Patrimonial', 'Denominación', 'Marca/Serie', 'Sede / Área', 'Responsable', 'Estado']]
 
     # ==========================================================
-    # 4. GENERAR FILAS
+    # 4. GENERAR FILAS CON PARAGRAPH EN TODAS LAS COLUMNAS LARGAS
     # ==========================================================
     for idx, bien in enumerate(bienes, 1):
+        # Preparar textos (algunos con saltos de línea manuales para mejor presentación)
+        texto_denominacion = bien.denominacion
+        texto_marca_serie = f"{bien.marca or ''} / {bien.serie or ''}"
         texto_sede_area = f"{bien.sede.nombre or ''}\n{bien.area.nombre or ''}"
+        texto_responsable = bien.usuario_responsable.get_full_name() or ''
+
         table_data.append([
             str(idx),
             bien.codigo_patrimonial,
-            bien.denominacion,
-            f"{bien.marca or ''} / {bien.serie or ''}",
-            Paragraph(texto_sede_area, cell_style),
-            bien.usuario_responsable.get_full_name() or '',
+            Paragraph(texto_denominacion, cell_style),   # <-- Ajuste automático
+            Paragraph(texto_marca_serie, cell_style),    # <-- Ajuste automático
+            Paragraph(texto_sede_area, cell_style),      # <-- Ajuste automático
+            Paragraph(texto_responsable, cell_style),    # <-- Ajuste automático
             bien.get_estado_conservacion_display()
         ])
 
@@ -572,4 +577,100 @@ def generar_inventario_general_pdf(request):
 
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="inventario_general.pdf"'
+    return response
+
+@login_required
+def generar_informe_dremo_pdf(request):
+    if not request.user.es_inventariador_o_admin:
+        return HttpResponse("No tiene permisos para generar este reporte.", status=403)
+
+    # ========== FILTRO EXCLUSIVO PARA DREMO ==========
+    bienes = Bien.objects.filter(activo=True, tipo_adquisicion='DREMO').select_related(
+        'sede', 'area', 'usuario_responsable'
+    ).order_by('codigo_patrimonial')
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), topMargin=30, bottomMargin=30, leftMargin=30, rightMargin=30)
+    story = []
+    styles = getSampleStyleSheet()
+
+    # 1. LOGO (igual que el reporte general)
+    logo_url = "https://iestparib.edu.pe/monitoreo-servidor/assets/logos/arib.png"
+    logo_img = None
+    try:
+        with urlopen(logo_url, timeout=5) as response:
+            logo_img = Image(BytesIO(response.read()))
+            logo_img.drawHeight = 40
+            logo_img.drawWidth = 40
+    except URLError:
+        logo_img = None
+
+    # 2. TÍTULO Y ENCABEZADO
+    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=14, alignment=TA_CENTER)
+    header_data = [
+        [logo_img if logo_img else '', Paragraph("<b>INFORME DE BIENES ADQUIRIDOS POR DREMO</b>", title_style)]
+    ]
+    header_table = Table(header_data, colWidths=[60, 500])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 20))
+
+    # 3. ESTILO DE CELDAS (Mismo estilo para evitar desbordamientos)
+    cell_style = ParagraphStyle(
+        name='CellStyle',
+        parent=styles['Normal'],
+        fontSize=7,
+        leading=9,
+        alignment=0
+    )
+
+    # Encabezados de tabla
+    table_data = [['N°', 'Cód. Patrimonial', 'Denominación', 'Marca/Serie', 'Sede / Área', 'Responsable', 'Estado']]
+
+    # 4. GENERAR FILAS
+    # (Si no hay bienes DREMO, mostramos un mensaje)
+    if not bienes:
+        table_data.append(['', '', 'No se encontraron bienes con tipo de adquisición DREMO.', '', '', '', ''])
+    else:
+        for idx, bien in enumerate(bienes, 1):
+            texto_denominacion = bien.denominacion
+            texto_marca_serie = f"{bien.marca or ''} / {bien.serie or ''}"
+            texto_sede_area = f"{bien.sede.nombre or ''}\n{bien.area.nombre or ''}"
+            texto_responsable = bien.usuario_responsable.get_full_name() or ''
+
+            table_data.append([
+                str(idx),
+                bien.codigo_patrimonial,
+                Paragraph(texto_denominacion, cell_style),
+                Paragraph(texto_marca_serie, cell_style),
+                Paragraph(texto_sede_area, cell_style),
+                Paragraph(texto_responsable, cell_style),
+                bien.get_estado_conservacion_display()
+            ])
+
+    # 5. CONFIGURAR LA TABLA
+    t = Table(table_data, colWidths=[25, 80, 160, 90, 130, 100, 70], repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.whitesmoke])
+    ]))
+
+    story.append(t)
+    doc.build(story)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="informe_bienes_dremo.pdf"'
     return response
