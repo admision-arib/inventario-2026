@@ -100,14 +100,17 @@ def lista_bienes(request):
 
     return render(request, 'bienes/lista.html', context)
 
-    return render(request, 'bienes/lista.html', context)
-
 
 # ============================
 # IMPRESIÓN MASIVA DE QR (HOJA A4)
 # ============================
 @login_required
 def imprimir_qrs_area(request, area_id):
+    # Validar permisos
+    if not request.user.es_inventariador_o_admin:
+        messages.error(request, " No tiene permisos para imprimir códigos QR.")
+        return redirect('bienes:lista')
+
     area = get_object_or_404(Area, id=area_id)
 
     # Obtener todos los bienes con QR generado de esta área
@@ -178,6 +181,11 @@ def detalle_publico(request, codigo):
 @login_required
 def detalle_bien(request, codigo):
     bien = get_object_or_404(Bien, codigo_patrimonial=codigo)
+    # Validar permisos: admin/inventariador puede ver todos, custodio solo los suyos
+    if not request.user.es_inventariador_o_admin:
+        if bien.usuario_responsable != request.user and bien.area not in request.user.areas_custodia.all():
+            messages.error(request, " No tiene permisos para ver este bien.")
+            return redirect('bienes:lista')
     return render(request, 'bienes/detalle.html', {'bien': bien})
 
 
@@ -191,6 +199,12 @@ def editar_bien(request, codigo):
         return redirect('bienes:lista')
 
     bien = get_object_or_404(Bien, codigo_patrimonial=codigo)
+
+    # Validar que el bien esté activo
+    if not bien.activo:
+        messages.error(request, " No puede editar un bien que está dado de baja.")
+        return redirect('bienes:lista')
+
     if request.method == 'POST':
         form = BienForm(request.POST, instance=bien)
         if form.is_valid():
@@ -212,6 +226,12 @@ def baja_bien(request, codigo):
         return redirect('bienes:lista')
 
     bien = get_object_or_404(Bien, codigo_patrimonial=codigo)
+
+    # Validar que el bien esté activo
+    if not bien.activo:
+        messages.error(request, " Este bien ya está dado de baja.")
+        return redirect('bienes:lista')
+
     if request.method == 'POST':
         motivo = request.POST.get('motivo', '').strip()
         if not motivo:
@@ -252,11 +272,17 @@ def importar_bienes(request):
         archivo = request.FILES['archivo_excel']
         hojas_seleccionadas = request.POST.getlist('hojas')
 
+        # Validar tipo de archivo
+        nombre_archivo = archivo.name.lower()
+        extensiones_validas = ('.xlsx', '.xlsm', '.xls')
+        if not nombre_archivo.endswith(extensiones_validas):
+            messages.error(request, " Formato de archivo no válido. Solo se permiten archivos .xlsx, .xlsm o .xls")
+            return redirect('bienes:importar')
+
         if not hojas_seleccionadas:
             messages.error(request, " Debe seleccionar al menos una hoja para importar.")
             return redirect('bienes:importar')
 
-        nombre_archivo = archivo.name.lower()
         es_xlsx = nombre_archivo.endswith('.xlsx') or nombre_archivo.endswith('.xlsm')
 
         if es_xlsx:
@@ -289,6 +315,12 @@ def listar_hojas(request):
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         archivo = request.FILES['archivo_excel']
         nombre_archivo = archivo.name.lower()
+
+        # Validar tipo de archivo
+        extensiones_validas = ('.xlsx', '.xlsm', '.xls')
+        if not nombre_archivo.endswith(extensiones_validas):
+            return JsonResponse({'error': 'Formato de archivo no válido. Solo se permiten archivos .xlsx, .xlsm o .xls'}, status=400)
+
         es_xlsx = nombre_archivo.endswith('.xlsx') or nombre_archivo.endswith('.xlsm')
 
         try:
@@ -314,10 +346,15 @@ def mis_bienes(request):
     user = request.user
     mis_areas = user.areas_custodia.all()
 
-    bienes = Bien.objects.filter(
-        Q(usuario_responsable=user) | Q(area__in=mis_areas),
-        activo=True
-    ).distinct().select_related('area', 'usuario_responsable')
+    # Los admin/inventariadores pueden ver todos los bienes
+    if user.es_inventariador_o_admin:
+        bienes = Bien.objects.filter(activo=True).select_related('area', 'usuario_responsable')
+    else:
+        # Custodio solo ve bienes asignados a él o de sus áreas de custodia
+        bienes = Bien.objects.filter(
+            Q(usuario_responsable=user) | Q(area__in=mis_areas),
+            activo=True
+        ).distinct().select_related('area', 'usuario_responsable')
 
     return render(request, 'bienes/mis_bienes.html', {
         'bienes': bienes,
@@ -360,6 +397,16 @@ def asignacion_masiva(request):
         if not bienes.exists():
             messages.warning(request, " No se encontraron bienes activos para reasignar.")
             return redirect('bienes:lista')
+
+        # Validar que el usuario tenga permisos sobre estos bienes
+        if not request.user.es_inventariador_o_admin:
+            # Custodio solo puede reasignar bienes de sus áreas o asignados a él
+            bienes_permitidos = bienes.filter(
+                Q(usuario_responsable=request.user) | Q(area__in=request.user.areas_custodia.all())
+            )
+            if bienes_permitidos.count() != bienes.count():
+                messages.error(request, " No tiene permisos para reasignar algunos de los bienes seleccionados.")
+                return redirect('bienes:lista')
 
         try:
             with transaction.atomic():
@@ -416,7 +463,16 @@ def buscar_bienes_ajax(request):
         Q(denominacion__icontains=query) |
         Q(serie__icontains=query),
         activo=True
-    ).select_related('area', 'sede')[:20]  # Limitamos a los primeros 20 resultados
+    )
+
+    # Los admin/inventariadores pueden ver todos los bienes
+    if not request.user.es_inventariador_o_admin:
+        # Custodio solo ve bienes asignados a él o de sus áreas de custodia
+        bienes = bienes.filter(
+            Q(usuario_responsable=request.user) | Q(area__in=request.user.areas_custodia.all())
+        )
+
+    bienes = bienes.select_related('area', 'sede')[:20]  # Limitamos a los primeros 20 resultados
 
     results = [
         {

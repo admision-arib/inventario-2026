@@ -3,7 +3,6 @@ import re
 from decimal import Decimal
 from datetime import datetime
 from django.db import transaction
-from django.core.exceptions import ValidationError
 from openpyxl import load_workbook
 import xlrd
 
@@ -118,13 +117,37 @@ def importar_desde_excel(archivo_excel, usuario_actual, hojas_seleccionadas=None
 
         # === 5. PROCESAR FILAS DE BIENES ===
         filas = data['filas']
-        for row in filas:
-            if not row or not row.get('denominacion'):
-                continue
 
-            cantidad = row.get('cantidad', 1)
-            for i in range(cantidad):
-                with transaction.atomic():
+        # Calcular el total de bienes a crear para esta hoja
+        total_bienes_hoja = sum(row.get('cantidad', 1) for row in filas if row and row.get('denominacion'))
+
+        # Obtener el último código una sola vez con bloqueo para evitar duplicados
+        from datetime import date
+        import re
+        año = date.today().year
+        area_clean = re.sub(r'[^A-Z0-9]', '', area_nombre.upper().strip())[:5] if area_nombre else "GENERAL"
+        prefijo = f"BN-{area_clean}-{año}-"
+
+        with transaction.atomic():
+            ultimo = Bien.objects.select_for_update().filter(
+                codigo_patrimonial__startswith=prefijo
+            ).order_by('-codigo_patrimonial').first()
+
+            if ultimo:
+                try:
+                    secuencia_actual = int(ultimo.codigo_patrimonial.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    secuencia_actual = 1
+            else:
+                secuencia_actual = 1
+
+            # Procesar cada fila con códigos secuenciales
+            for row in filas:
+                if not row or not row.get('denominacion'):
+                    continue
+
+                cantidad = row.get('cantidad', 1)
+                for i in range(cantidad):
                     try:
                         # Crear el bien
                         bien = Bien(
@@ -146,8 +169,9 @@ def importar_desde_excel(archivo_excel, usuario_actual, hojas_seleccionadas=None
                             depreciable=False,
                         )
 
-                        # === GENERAR CÓDIGO PATRIMONIAL CON FORMATO BN-AREA-AÑO-SECUENCIA ===
-                        bien.codigo_patrimonial = generar_codigo_patrimonial(area_nombre)
+                        # Asignar código patrimonial secuencial
+                        bien.codigo_patrimonial = f"{prefijo}{secuencia_actual:05d}"
+                        secuencia_actual += 1
 
                         # === GUARDAR CÓDIGO SIGA DEL EXCEL (si existe) ===
                         codigo_siga = row.get('codigo_patrimonial')
@@ -475,6 +499,8 @@ def generar_codigo_patrimonial(area_nombre=None):
     """
     Genera código patrimonial único con formato BN-AREA-AÑO-SECUENCIA.
     Si no se proporciona área, usa "GENERAL".
+    NOTA: Esta función debe ser llamada dentro de una transacción para garantizar
+    la unicidad del código en entornos concurrentes.
     """
     from datetime import date
     import re
@@ -484,33 +510,19 @@ def generar_codigo_patrimonial(area_nombre=None):
     else:
         area_clean = "GENERAL"
     prefijo = f"BN-{area_clean}-{año}-"
-    ultimo = Bien.objects.filter(codigo_patrimonial__startswith=prefijo).order_by('-codigo_patrimonial').first()
+
+    # Usar select_for_update para evitar condiciones de carrera
+    # Esto bloquea las filas hasta que la transacción actual termine
+    ultimo = Bien.objects.select_for_update().filter(
+        codigo_patrimonial__startswith=prefijo
+    ).order_by('-codigo_patrimonial').first()
+
     if ultimo:
         try:
             secuencia = int(ultimo.codigo_patrimonial.split('-')[-1]) + 1
-        except:
+        except (ValueError, IndexError):
             secuencia = 1
     else:
         secuencia = 1
+
     return f"{prefijo}{secuencia:05d}"
-#def generar_codigo_patrimonial(area_nombre):
-#    """
-#    Genera código patrimonial único con formato BN-AREA-AÑO-SECUENCIA.
-#    Ejemplo: BN-BIBLIOTECA-2026-00001
-#    """
-#    from datetime import date
-#    año = date.today().year
-#    # Normalizar nombre del área (mayúsculas, sin espacios ni caracteres especiales)
-#    area_clean = re.sub(r'[^A-Z0-9]', '', area_nombre.upper().strip())[:5]  # Truncar a 5 caracteres
-#    prefijo = f"BN-{area_clean}-{año}-"
-#    ultimo = Bien.objects.filter(
-#        codigo_patrimonial__startswith=prefijo
-#    ).order_by('-codigo_patrimonial').first()
-#    if ultimo:
-#        try:
-#            secuencia = int(ultimo.codigo_patrimonial.split('-')[-1]) + 1
-#        except:
-#            secuencia = 1
-#    else:
-#        secuencia = 1
-#    return f"{prefijo}{secuencia:05d}"
