@@ -703,3 +703,12 @@ def generar_informe_dremo_pdf(request):
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="informe_bienes_dremo.pdf"'
     return response
+
+@login_required
+def lista_actas(request):
+    sesiones = SesionInventario.objects.filter(
+        estado='FINALIZADO'
+    ).select_related('area', 'custodio').order_by('-fecha_cierre')
+    return render(request, 'reportes/lista_actas.html', {
+        'sesiones': sesiones
+    })
