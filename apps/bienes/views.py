@@ -484,3 +484,10 @@ def buscar_bienes_ajax(request):
     ]
 
     return JsonResponse({'results': results})
+
+@login_required
+def imprimir_qr_individual(request, codigo):
+    bien = get_object_or_404(Bien, codigo_patrimonial=codigo, activo=True)
+    return render(request, 'bienes/etiqueta_qr_individual.html', {
+        'bien': bien,
+    })

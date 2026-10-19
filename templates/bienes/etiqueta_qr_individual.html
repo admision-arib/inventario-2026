@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>QR {{ bien.codigo_patrimonial }}</title>
+<style>
+  @page { size: A4 portrait; margin:4mm; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Arial; background:#f1f5f9; }
+  .no-print { max-width:800px; margin:10px auto; background:white; padding:12px 16px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid #ddd; }
+  .a4 { width:202mm; min-height:50mm; margin:0 auto; background:white; padding:2mm; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; }
+  .card { border:1.2px dashed #64748b; border-radius:7px; padding:6px 8px; display:flex; gap:8px; align-items:center; height:78px; background:white; }
+  .qr { width:56px; height:56px; flex-shrink:0; }
+  .qr img { width:100%; height:100%; object-fit:contain; }
+  .codigo { font-family:monospace; font-weight:900; font-size:9px; line-height:1; }
+  .denom { font-size:8px; font-weight:600; line-height:1.2; margin-top:3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .area { font-size:6.5px; font-weight:700; color:#64748b; margin-top:3px; text-transform:uppercase; }
+  @media print { .no-print { display:none !important; } body { background:white; padding:0; } .a4 { border:none; width:100%; } .card { break-inside:avoid; border-color:#000 !important; } }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <div><b>{{ bien.codigo_patrimonial }}</b> - {{ bien.denominacion|truncatechars:30 }}</div>
+  <div style="display:flex; gap:8px;">
+    <button onclick="window.print()" style="background:#4f46e5; color:white; padding:8px 14px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;">🖨 Imprimir</button>
+    <button onclick="window.close()" style="background:#e2e8f0; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;">Cerrar</button>
+  </div>
+</div>
+
+<div class="a4">
+  <div class="grid">
+    <div class="card">
+      <div class="qr"><img src="{{ bien.qr_code.url }}" alt="QR"></div>
+      <div style="flex:1; min-width:0;">
+        <div class="codigo">{{ bien.codigo_patrimonial }}</div>
+        <div class="denom">{{ bien.denominacion }}</div>
+        <div class="area">IESTP ARIB - {{ bien.area.nombre }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
