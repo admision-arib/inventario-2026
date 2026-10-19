@@ -2,62 +2,80 @@
 {% block title %}Actas de Consolidación - IESTP ARIB{% endblock %}
 
 {% block content %}
-<!-- Header igual a Bienes Registrados -->
-<div class="bg-white shadow-sm rounded-xl border border-slate-200/60 p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="bg-white shadow-sm rounded-xl border border-slate-200/60 p-5 mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
   <div>
     <h1 class="text-lg font-bold text-slate-800 tracking-tight">Actas de Consolidación Generadas</h1>
     <p class="text- text-slate-500 mt-1">Actas finalizadas con declaración de responsabilidad 2026</p>
   </div>
-  <div class="flex items-center gap-2">
-    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">{{ sesiones|length }} actas</span>
+  <div class="flex items-center gap-3 w-full lg:w-auto">
+    <!-- Buscador -->
+    <form method="get" class="flex gap-2 w-full lg:w-80">
+      <input type="text" name="q" value="{{ q }}" placeholder="Buscar por área, custodio o N° control..."
+             class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+      <button type="submit" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-900">Buscar</button>
+    </form>
+    <span class="hidden lg:inline-flex text-xs font-medium text-slate-500 bg-slate-100 px-3 py-2 rounded-full whitespace-nowrap">{{ total_actas }} actas</span>
   </div>
 </div>
 
-<!-- Tabla -->
 <div class="bg-white shadow-sm rounded-xl border border-slate-200/60 overflow-hidden">
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-slate-200">
       <thead class="bg-slate-900">
         <tr>
-          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase tracking-wider">N° Control</th>
-          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase tracking-wider">Área</th>
-          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase tracking-wider">Custodio</th>
-          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase tracking-wider">Fecha Cierre</th>
-          <th class="px-5 py-3 text-center text- font-bold text-slate-300 uppercase tracking-wider">Total</th>
-          <th class="px-5 py-3 text-center text- font-bold text-slate-300 uppercase tracking-wider">Acciones</th>
+          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase">N° CONTROL</th>
+          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase">ÁREA</th>
+          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase">CUSTODIO</th>
+          <th class="px-5 py-3 text-left text- font-bold text-slate-300 uppercase">FECHA CIERRE</th>
+          <th class="px-5 py-3 text-center text- font-bold text-slate-300 uppercase">TOTAL</th>
+          <th class="px-5 py-3 text-center text- font-bold text-slate-300 uppercase">ACCIONES</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 bg-white">
-        {% for s in sesiones %}
+        {% for s in page_obj %}
         <tr class="hover:bg-slate-50/80 transition">
           <td class="px-5 py-3.5 text-sm font-bold text-slate-800">AUD-{{ s.id|stringformat:"05d" }}</td>
-          <td class="px-5 py-3.5 text-sm text-slate-600 font-medium">{{ s.area.nombre|upper }}</td>
+          <td class="px-5 py-3.5 text-sm text-slate-600">{{ s.area.nombre|upper }}</td>
           <td class="px-5 py-3.5 text-sm text-slate-600">{{ s.custodio.get_full_name|default:s.custodio.username }}</td>
           <td class="px-5 py-3.5 text-sm text-slate-500">{{ s.fecha_cierre|date:"d/m/Y H:i" }}</td>
-          <td class="px-5 py-3.5 text-sm text-center">
-            <span class="inline-flex items-center bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full text-xs font-semibold">{{ s.detalles.count }} bienes</span>
-          </td>
-          <td class="px-5 py-3.5 text-sm text-center">
-            <a href="{% url 'reportes:acta_consolidacion_pdf' %}?sesion_id={{ s.id }}" target="_blank"
-               class="inline-flex items-center gap-1.5 bg-indigo-600 text-white px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-600/20 transition">
-               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5h6M9 5a2 2 0 00-2 2v2a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2z"/></svg>
-               Ver / Imprimir
-            </a>
+          <td class="px-5 py-3.5 text-center"><span class="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full text-xs font-semibold">{{ s.detalles.count }} bienes</span></td>
+          <td class="px-5 py-3.5 text-center">
+            <a href="{% url 'reportes:acta_consolidacion_pdf' %}?sesion_id={{ s.id }}" target="_blank" class="inline-flex items-center gap-1.5 bg-indigo-600 text-white px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm">Ver / Imprimir</a>
           </td>
         </tr>
         {% empty %}
-        <tr>
-          <td colspan="6" class="px-5 py-12 text-center">
-            <div class="flex flex-col items-center">
-              <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 text-slate-400">📄</div>
-              <p class="text-sm font-medium text-slate-600">No hay actas finalizadas aún</p>
-              <p class="text-xs text-slate-400 mt-1">Inicia una verificación QR en el módulo de Bienes</p>
-            </div>
-          </td>
-        </tr>
+        <tr><td colspan="6" class="px-5 py-12 text-center text-slate-500 text-sm">No se encontraron actas.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
+  <!-- PAGINACIÓN -->
+  {% if page_obj.has_other_pages %}
+  <div class="bg-white border-t border-slate-200 px-5 py-4 flex items-center justify-between">
+    <div class="text-xs text-slate-500">
+      Mostrando página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} — {{ total_actas }} actas en total
+    </div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{% if q %}&q={{ q }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs hover:bg-slate-50">« Primera</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs hover:bg-slate-50">‹ Anterior</a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs hover:bg-slate-50">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs hover:bg-slate-50">Siguiente ›</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs hover:bg-slate-50">Última »</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

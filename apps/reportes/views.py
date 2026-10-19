@@ -704,11 +704,36 @@ def generar_informe_dremo_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="informe_bienes_dremo.pdf"'
     return response
 
+
+from django.core.paginator import Paginator
+from django.db.models import Count
+
+
 @login_required
 def lista_actas(request):
-    sesiones = SesionInventario.objects.filter(
+    # Buscador opcional por área o custodio
+    q = request.GET.get('q', '').strip()
+
+    sesiones_qs = SesionInventario.objects.filter(
         estado='FINALIZADO'
     ).select_related('area', 'custodio').order_by('-fecha_cierre')
+
+    if q:
+        sesiones_qs = sesiones_qs.filter(
+            Q(area__nombre__icontains=q) |
+            Q(custodio__first_name__icontains=q) |
+            Q(custodio__last_name__icontains=q) |
+            Q(id__icontains=q.replace('AUD-', '').replace('aud-', ''))
+        )
+
+    # Paginación - 10 por página
+    paginator = Paginator(sesiones_qs, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'reportes/lista_actas.html', {
-        'sesiones': sesiones
+        'page_obj': page_obj,
+        'sesiones': page_obj.object_list,  # para compatibilidad
+        'q': q,
+        'total_actas': paginator.count
     })
