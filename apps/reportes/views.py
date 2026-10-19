@@ -458,7 +458,7 @@ def generar_acta_consolidacion_pdf(request):
       Paragraph(
           f'___________________________________<br/>'
           f'<b>{verificador_nombre}</b><br/>'
-          f'DNI: {verificador_dni}<br/>'
+          f'DNI: <br/>'
           f'<b>RESPONSABLE DE PATRIMONIO</b><br/>'
           f'IESTP ARIB',
           ParagraphStyle('F2', parent=body_normal, alignment=TA_CENTER),
