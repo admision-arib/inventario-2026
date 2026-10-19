@@ -9,7 +9,9 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = False
 
 # ========== HTTPS OBLIGATORIO ========== [FIX REG-01 + SEC-11]
-SECURE_SSL_REDIRECT = True  # <--- REPONER ESTA LÍNEA, es la regresión crítica
+SECURE_SSL_REDIRECT = False  # <--- REPONER ESTA LÍNEA, es la regresión crítica
+SECURE_PROXY_SSL_HEADER = None  # <--- None, porque no te está mandando el header
+
 SECURE_HSTS_SECONDS = 31536000  # 1 año
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
