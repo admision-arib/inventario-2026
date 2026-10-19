@@ -401,19 +401,48 @@ def generar_acta_consolidacion_pdf(request):
   story.append(t_bienes)
   story.append(Spacer(1, 15))
 
-  # Firmas y Declaración
-  texto_compromiso = (
-      'El custodio y el responsable de inventario certifican que se realizó la'
-      ' verificación física por escaneo de código QR de los activos detallados.'
-      ' Se asume la responsabilidad administrativa de su correcto uso y'
-      ' conservación.'
+  # DECLARACIÓN DE RESPONSABILIDAD Y COMPROMISO DE ENTREGA - TEXTO OFICIAL
+  declaracion_titulo = ParagraphStyle(
+      'DeclT',
+      parent=body_bold,
+      fontName='Helvetica-Bold',
+      fontSize=9,
+      leading=11,
+      alignment=TA_CENTER,
+      textColor=colors.HexColor('#1E293B'),
+      spaceAfter=6,
   )
+  declaracion_texto = ParagraphStyle(
+      'DeclTx',
+      parent=body_normal,
+      fontName='Helvetica',
+      fontSize=8,
+      leading=11,
+      alignment=TA_JUSTIFY,
+      textColor=colors.HexColor('#1E293B'),
+  )
+
   story.append(
       Paragraph(
-          texto_compromiso,
-          ParagraphStyle('Comp', parent=body_normal, alignment=TA_JUSTIFY),
+          'DECLARACIÓN DE RESPONSABILIDAD Y COMPROMISO DE ENTREGA',
+          declaracion_titulo,
       )
   )
+  story.append(Spacer(1, 2))
+
+  texto_declaracion = (
+      'El custodio y el responsable de inventario certifican que se realizó la verificación '
+      'física por escaneo de código QR de los activos detallados. En este acto, el custodio '
+      'recepciona formalmente los bienes asignados, asumiendo desde este momento la responsabilidad '
+      'administrativa, civil y legal por su correcto uso, conservación, integridad y salvaguarda.<br/><br/>'
+      'Asimismo, el custodio se compromete de manera expresa a realizar la entrega física de la totalidad '
+      'de los bienes inventariados al finalizar el año académico 2026, de acuerdo a la presente acta y a la '
+      'Ficha de Asignación de Bienes, ante el área de Patrimonio o la instancia que designe la institución.<br/><br/>'
+      'Cualquier pérdida, daño, deterioro o faltante que se detecte durante el periodo de custodia o al momento '
+      'de la entrega final será de su exclusiva responsabilidad, quedando sujeto a las acciones administrativas '
+      'y legales que correspondan conforme a la normativa vigente.'
+  )
+  story.append(Paragraph(texto_declaracion, declaracion_texto))
   story.append(Spacer(1, 40))
 
   # 2. BLOQUE DE FIRMAS CON NOMBRES Y DNI AUTOMÁTICOS

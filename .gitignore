@@ -19,6 +19,7 @@ db.sqlite3
 media/
 staticfiles/
 
+docs/
 # Carpeta de QR e imágenes generadas
 qr/
 *.png
